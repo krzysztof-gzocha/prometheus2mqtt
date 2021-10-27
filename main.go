@@ -104,7 +104,7 @@ func mqttClientOptions(mqttConfig config.Mqtt, logger *log.Logger) *mqtt.ClientO
 		logger.Println("Reconnecting with MQTT broker...")
 	}
 	cfg.OnConnectionLost = func(_ mqtt.Client, err error) {
-		logger.Println("[ERROR] Connection to MQTT broker was lost due to: %+v", err)
+		logger.Printf("[ERROR] Connection to MQTT broker was lost due to: %+v\n", err)
 	}
 
 	return cfg
