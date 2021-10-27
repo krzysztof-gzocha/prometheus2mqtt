@@ -25,6 +25,7 @@ import (
 
 func main() {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger.Printf("Starting Prometheus2MQTT (ver: %s)\n", config.Version)
 	ctx, terminate := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 	defer terminate()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 	"log"
 	"strings"
 
@@ -11,9 +12,20 @@ import (
 	"github.com/krzysztof-gzocha/prometheus2mqtt/config"
 )
 
+const deviceName = "prometheus2mqtt"
+const deviceManufacturer = "Krzysztof Gzocha Twitter:@kgzocha"
+
 type haConfigMessage struct {
-	Name       string `json:"name"`
-	StateTopic string `json:"state_topic"`
+	Name       string   `json:"name"`
+	StateTopic string   `json:"state_topic"`
+	Device     haDevice `json:"device"`
+}
+
+type haDevice struct {
+	Manufacturer string `json:"manufacturer"`
+	Name         string `json:"name"`
+	Identifiers  string `json:"identifiers"`
+	Version      string `json:"sw_version"`
 }
 
 type HomeAssistant struct {
@@ -56,10 +68,18 @@ func (h *HomeAssistant) isConfigured(name string) bool {
 }
 
 func (h *HomeAssistant) configure(ctx context.Context, name string) error {
-	h.logger.Printf("Configuring sensor: %s\n", h.cfg.ClientID+": "+name)
+	sensorName := h.sensorName(name)
+	h.logger.Printf("Configuring sensor: %s (ID: %s)\n", sensorName, shortHash(sensorName))
+
 	haCfg := haConfigMessage{
-		Name:       h.cfg.ClientID + ": " + name,
+		Name:       sensorName,
 		StateTopic: h.stateTopic(name),
+		Device: haDevice{
+			Manufacturer: deviceManufacturer,
+			Name:         deviceName,
+			Version:      config.Version,
+			Identifiers:  shortHash(sensorName),
+		},
 	}
 
 	j, err := json.Marshal(&haCfg)
@@ -81,6 +101,10 @@ func (h *HomeAssistant) configure(ctx context.Context, name string) error {
 	h.alreadyConfigured[name] = struct{}{}
 
 	return nil
+}
+
+func (h *HomeAssistant) sensorName(name string) string {
+	return h.cfg.ClientID + ": " + name
 }
 
 func (h *HomeAssistant) stateTopic(name string) string {
@@ -120,4 +144,11 @@ func (h *HomeAssistant) sendMsg(ctx context.Context, topic, msg string) error {
 	case <-ctx.Done():
 		return fmt.Errorf("publishing exceeded timeout: %w", token.Error())
 	}
+}
+
+func shortHash(input string) string {
+	h := crc32.NewIEEE() //nolint:gosec
+	_, _ = h.Write([]byte(input))
+
+	return string(h.Sum(nil))
 }

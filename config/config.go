@@ -8,6 +8,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+var Version string
+
 type Config struct {
 	PrometheusUrl string            `envconfig:"prometheus_url" required:"true"`
 	Mqtt          Mqtt              `envconfig:"mqtt"`
